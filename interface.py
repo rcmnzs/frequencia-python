@@ -14,7 +14,7 @@ from tkinter import filedialog
 
 class AplicativoFrequencia:
     def __init__(self):
-        self.janela = ttk.Window(themename="solar")
+        self.janela = ttk.Window(themename="darkly")
         self.janela.title("Processador de Frequência Escolar")
         self.janela.geometry("1100x750")
         
@@ -37,12 +37,9 @@ class AplicativoFrequencia:
                 self.carregar_alunos_tabela()
             
             # Atualizar aba de Horários
-            if hasattr(self, 'combo_turma_horarios'):
-                self.combo_turma_horarios.configure(values=["Todas"] + logica.obter_turmas_distintas())
-                self.combo_dia_semana_horarios.configure(values=["Todos"] + logica.obter_dias_semana_distintos())
-                self.pagina_horarios = 0
-                self.carregar_horarios_tabela()
-            
+            if hasattr(self, 'combo_turma_grade'):
+                self.carregar_grade_horarios()
+
             # Atualizar aba de Faltas
             if hasattr(self, 'combo_filtro_disciplina'):
                 self.combo_filtro_disciplina.configure(values=["Todas"] + logica.obter_disciplinas_distintas())
@@ -111,8 +108,8 @@ class AplicativoFrequencia:
         self.tree_processar = ttk.Treeview(frame_resultado, columns=colunas, show='headings', height=15)
         
         for col in colunas:
-            self.tree_processar.heading(col, text=col)
-            self.tree_processar.column(col, width=150)
+            self.tree_processar.heading(col, text=col, anchor=W)
+            self.tree_processar.column(col, width=150, anchor=W)
         
         scrollbar = ttk.Scrollbar(frame_resultado, orient=VERTICAL, command=self.tree_processar.yview)
         self.tree_processar.configure(yscrollcommand=scrollbar.set)
@@ -120,7 +117,6 @@ class AplicativoFrequencia:
         scrollbar.pack(side=RIGHT, fill=Y)
     
     def selecionar_pdf_frequencia(self):
-        # Define o diretório inicial
         pasta_pdfs = os.path.join(os.getcwd(), 'PDFs')
         if not os.path.exists(pasta_pdfs):
             os.makedirs(pasta_pdfs)
@@ -136,7 +132,6 @@ class AplicativoFrequencia:
             self.label_pdf_freq.config(text=nome, foreground="white")
     
     def selecionar_pdf_ausentes(self):
-        # Define o diretório inicial
         pasta_pdfs = os.path.join(os.getcwd(), 'PDFs')
         if not os.path.exists(pasta_pdfs):
             os.makedirs(pasta_pdfs)
@@ -152,7 +147,6 @@ class AplicativoFrequencia:
             self.label_pdf_aus.config(text=nome, foreground="white")
     
     def abrir_calendario(self):
-        """Abre uma janela com calendário para seleção de data"""
         try:
             from ttkbootstrap.dialogs.dialogs import DatePickerDialog
             
@@ -163,7 +157,6 @@ class AplicativoFrequencia:
                 self.entry_data.delete(0, END)
                 self.entry_data.insert(0, data_selecionada)
         except Exception as e:
-            # Fallback: usar entrada manual de data se calendário falhar
             Messagebox.show_info("Use o formato DD/MM/AAAA para inserir a data manualmente.", "Calendário")
             
     def processar_frequencia(self):
@@ -203,7 +196,6 @@ class AplicativoFrequencia:
         frame_superior = ttk.Frame(aba)
         frame_superior.pack(fill=X, padx=10, pady=10)
         
-        # Linha de filtros
         frame_filtros = ttk.Frame(frame_superior)
         frame_filtros.pack(side=LEFT, fill=X, expand=True)
         
@@ -219,7 +211,6 @@ class AplicativoFrequencia:
         ttk.Button(frame_filtros, text="Filtrar", command=self.aplicar_filtros_alunos, bootstyle=INFO).pack(side=LEFT, padx=5)
         ttk.Button(frame_filtros, text="Limpar Filtros", command=self.limpar_filtros_alunos, bootstyle=SECONDARY).pack(side=LEFT, padx=5)
         
-        # Frame para os botões de ação à direita
         frame_botoes_acao = ttk.Frame(frame_superior)
         frame_botoes_acao.pack(side=RIGHT)
 
@@ -230,8 +221,8 @@ class AplicativoFrequencia:
         colunas = ['Matrícula', 'Nome', 'Turma']
         self.tree_alunos = ttk.Treeview(aba, columns=colunas, show='headings', height=15)
         for col in colunas:
-            self.tree_alunos.heading(col, text=col)
-            self.tree_alunos.column(col, width=150)
+            self.tree_alunos.heading(col, text=col, anchor=W)
+            self.tree_alunos.column(col, width=150, anchor=W)
         self.tree_alunos.pack(fill=BOTH, expand=YES, padx=10, pady=10)
         
         frame_paginacao = ttk.Frame(aba)
@@ -245,12 +236,10 @@ class AplicativoFrequencia:
         self.carregar_alunos_tabela()
 
     def aplicar_filtros_alunos(self):
-        """Aplica os filtros e reseta para primeira página"""
         self.pagina_alunos = 0
         self.carregar_alunos_tabela()
 
     def limpar_filtros_alunos(self):
-        """Limpa os filtros de alunos"""
         self.entry_busca_aluno.delete(0, END)
         self.combo_filtro_turma_alunos.set("Todas")
         self.pagina_alunos = 0
@@ -502,7 +491,7 @@ class AplicativoFrequencia:
             
             janela_menu = ttk.Toplevel(self.janela)
             janela_menu.title("Gerenciar Horário")
-            janela_menu.geometry("400x380") # <-- ALTURA AUMENTADA
+            janela_menu.geometry("400x380")
             
             ttk.Label(janela_menu, text="Informações do Horário", font=('Arial', 14, 'bold')).pack(pady=20)
             
@@ -517,7 +506,6 @@ class AplicativoFrequencia:
             frame_botoes = ttk.Frame(janela_menu)
             frame_botoes.pack(fill=X, padx=20, pady=20)
             
-            # Centralizando botões
             frame_botoes.columnconfigure(0, weight=1)
 
             ttk.Button(frame_botoes, text="Editar", command=lambda: self.editar_horario(id_horario, janela_menu), bootstyle=INFO).pack(fill=X, pady=4)
@@ -528,7 +516,6 @@ class AplicativoFrequencia:
             Messagebox.show_error(f"Erro ao carregar horário: {str(e)}", "Erro")
 
     def editar_horario(self, id_horario, janela_anterior):
-        """Abre janela para editar horário"""
         try:
             janela_anterior.destroy()
             
@@ -604,7 +591,6 @@ class AplicativoFrequencia:
             Messagebox.show_error(f"Erro ao carregar dados para edição: {str(e)}", "Erro")
 
     def remover_horario(self, id_horario, janela_anterior):
-        """Remove um horário"""
         try:
             horario = logica.obter_horario_por_id(id_horario)
             
@@ -623,7 +609,6 @@ class AplicativoFrequencia:
             Messagebox.show_error(f"Erro ao remover horário: {str(e)}", "Erro")
 
     def mostrar_horarios_lista(self):
-        """Alterna para visualização em lista"""
         for widget in self.frame_grade.winfo_children():
             widget.destroy()
         
@@ -657,7 +642,6 @@ class AplicativoFrequencia:
         combo_dia_lista.bind('<<ComboboxSelected>>', lambda e: self.atualizar_lista(tree_lista, combo_turma_lista, combo_dia_lista))
 
     def atualizar_lista(self, tree, combo_turma, combo_dia):
-        """Atualiza a lista de horários"""
         for item in tree.get_children():
             tree.delete(item)
         
@@ -669,7 +653,6 @@ class AplicativoFrequencia:
             tree.insert('', END, values=horario)
 
     def abrir_menu_horario_lista(self, tree):
-        """Abre menu para horário selecionado na lista"""
         selecionado = tree.selection()
         if not selecionado:
             return
@@ -767,11 +750,11 @@ class AplicativoFrequencia:
         colunas = ['Matrícula', 'Nome', 'Turma', 'Disciplina', 'Total de Faltas']
         self.tree_faltas = ttk.Treeview(aba, columns=colunas, show='headings', height=15)
         for col in colunas:
-            self.tree_faltas.heading(col, text=col)
+            self.tree_faltas.heading(col, text=col, anchor=W)
             if col == 'Total de Faltas':
-                self.tree_faltas.column(col, width=120, anchor='center')
+                self.tree_faltas.column(col, width=130, anchor=CENTER) # Manter números centralizados
             else:
-                self.tree_faltas.column(col, width=130)
+                self.tree_faltas.column(col, width=130, anchor=W)
         self.tree_faltas.pack(fill=BOTH, expand=YES, padx=10, pady=10)
         
         frame_paginacao = ttk.Frame(aba)
@@ -791,7 +774,7 @@ class AplicativoFrequencia:
     def limpar_filtros_faltas(self):
         self.entry_filtro_nome.delete(0, END)
         self.combo_filtro_disciplina.set("Todas")
-        self.combo_filtro_turma_faltas.set("Todos")
+        self.combo_filtro_turma_faltas.set("Todas")
         self.combo_filtro_dia_faltas.set("Todos")
         self.pagina_faltas = 0
         self.carregar_faltas_tabela()
