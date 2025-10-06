@@ -219,7 +219,13 @@ class AplicativoFrequencia:
         ttk.Button(frame_filtros, text="Filtrar", command=self.aplicar_filtros_alunos, bootstyle=INFO).pack(side=LEFT, padx=5)
         ttk.Button(frame_filtros, text="Limpar Filtros", command=self.limpar_filtros_alunos, bootstyle=SECONDARY).pack(side=LEFT, padx=5)
         
-        ttk.Button(frame_superior, text="Adicionar Aluno", command=self.abrir_janela_adicionar_aluno, bootstyle=SUCCESS).pack(side=RIGHT, padx=5)
+        # Frame para os botões de ação à direita
+        frame_botoes_acao = ttk.Frame(frame_superior)
+        frame_botoes_acao.pack(side=RIGHT)
+
+        ttk.Button(frame_botoes_acao, text="Adicionar Aluno", command=self.abrir_janela_adicionar_aluno, bootstyle=SUCCESS).pack(side=LEFT, padx=5)
+        ttk.Button(frame_botoes_acao, text="Editar Aluno", command=self.abrir_janela_editar_aluno, bootstyle=INFO).pack(side=LEFT, padx=5)
+        ttk.Button(frame_botoes_acao, text="Excluir Aluno", command=self.excluir_aluno_selecionado, bootstyle=DANGER).pack(side=LEFT, padx=5)
         
         colunas = ['Matrícula', 'Nome', 'Turma']
         self.tree_alunos = ttk.Treeview(aba, columns=colunas, show='headings', height=15)
@@ -310,6 +316,74 @@ class AplicativoFrequencia:
                 Messagebox.show_error(f"Erro: {str(e)}", "Erro")
         
         ttk.Button(janela_add, text="Salvar", command=salvar_aluno, bootstyle=SUCCESS).pack(pady=10)
+
+    def abrir_janela_editar_aluno(self):
+        selecionado = self.tree_alunos.selection()
+        if not selecionado:
+            Messagebox.show_warning("Selecione um aluno para editar!", "Aviso")
+            return
+        
+        valores = self.tree_alunos.item(selecionado[0])["values"]
+        matricula_atual = valores[0]
+        nome_atual = valores[1]
+        turma_atual = valores[2]
+        
+        janela_edit = ttk.Toplevel(self.janela)
+        janela_edit.title("Editar Aluno")
+        
+        ttk.Label(janela_edit, text="Matrícula:").pack(pady=5)
+        entry_matricula = ttk.Entry(janela_edit)
+        entry_matricula.insert(0, matricula_atual)
+        entry_matricula.pack(pady=5)
+        
+        ttk.Label(janela_edit, text="Nome:").pack(pady=5)
+        entry_nome = ttk.Entry(janela_edit)
+        entry_nome.insert(0, nome_atual)
+        entry_nome.pack(pady=5)
+        
+        ttk.Label(janela_edit, text="Turma:").pack(pady=5)
+        entry_turma = ttk.Entry(janela_edit)
+        entry_turma.insert(0, turma_atual)
+        entry_turma.pack(pady=5)
+        
+        def salvar_edicao():
+            try:
+                novos_dados = {
+                    "matricula": entry_matricula.get(),
+                    "nome": entry_nome.get(),
+                    "turma": entry_turma.get()
+                }
+                logica.atualizar_aluno(matricula_atual, novos_dados)
+                Messagebox.show_info("Aluno atualizado com sucesso!", "Sucesso")
+                janela_edit.destroy()
+                self.carregar_alunos_tabela()
+            except Exception as e:
+                Messagebox.show_error(f"Erro: {str(e)}", "Erro")
+        
+        ttk.Button(janela_edit, text="Salvar", command=salvar_edicao, bootstyle=SUCCESS).pack(pady=10)
+
+    def excluir_aluno_selecionado(self):
+        selecionado = self.tree_alunos.selection()
+        if not selecionado:
+            Messagebox.show_warning("Selecione um aluno para excluir!", "Aviso")
+            return
+        
+        valores = self.tree_alunos.item(selecionado[0])["values"]
+        matricula_aluno = valores[0]
+        nome_aluno = valores[1]
+        
+        resposta = Messagebox.yesno(
+            f"Deseja realmente excluir o aluno {nome_aluno} (Matrícula: {matricula_aluno})?",
+            "Confirmar Exclusão"
+        )
+        
+        if resposta == "Sim":
+            try:
+                logica.excluir_aluno(matricula_aluno)
+                Messagebox.show_info("Aluno excluído com sucesso!", "Sucesso")
+                self.carregar_alunos_tabela()
+            except Exception as e:
+                Messagebox.show_error(f"Erro: {str(e)}", "Erro")
 
     # ========== ABA 3: HORÁRIOS ==========
     def criar_aba_horarios(self):
@@ -600,7 +674,7 @@ class AplicativoFrequencia:
         entry_turma.pack(pady=5)
         
         ttk.Label(frame_form, text="Dia da Semana:").pack(pady=5)
-        combo_dia_semana = ttk.Combobox(frame_form, values=["SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA", "QUINTA-FEIRA", "SEXTA-FEIRA", "SÁBADO", "DOMINGO"], state="readonly", width=28)
+        combo_dia_semana = ttk.Combobox(frame_form, values=["SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA", "QUINTA-FEIRA", "SEXTA-FEira", "SÁBADO", "DOMINGO"], state="readonly", width=28)
         combo_dia_semana.pack(pady=5)
         
         ttk.Label(frame_form, text="Hora Início (HH:MM):").pack(pady=5)
