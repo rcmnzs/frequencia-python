@@ -780,3 +780,46 @@ def limpar_todas_faltas():
         conn.close()
     except Exception as e:
         raise Exception(f"Erro ao limpar faltas: {str(e)}")
+        
+def obter_horarios_por_turma_grade(turma):
+    """Retorna horários organizados em formato de grade para visualização"""
+    try:
+        conn = sqlite3.connect(DB_HORARIOS)
+        df = pd.read_sql_query(
+            'SELECT id, turma, dia_semana, hora_inicio, hora_fim, disciplina FROM horarios WHERE turma = ? ORDER BY dia_semana, hora_inicio',
+            conn, params=[turma]
+        )
+        conn.close()
+        return df
+    except Exception as e:
+        raise Exception(f"Erro ao carregar horários: {str(e)}")
+
+def obter_horarios_todas_turmas_grade():
+    """Retorna todos os horários organizados para grade"""
+    try:
+        conn = sqlite3.connect(DB_HORARIOS)
+        df = pd.read_sql_query(
+            'SELECT id, turma, dia_semana, hora_inicio, hora_fim, disciplina FROM horarios ORDER BY turma, dia_semana, hora_inicio',
+            conn
+        )
+        conn.close()
+        return df
+    except Exception as e:
+        raise Exception(f"Erro ao carregar horários: {str(e)}")
+
+def obter_horario_por_id(id_horario):
+    """Retorna um horário específico pelo ID"""
+    try:
+        id_horario = int(str(id_horario).strip())
+        conn = sqlite3.connect(DB_HORARIOS)
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, turma, dia_semana, hora_inicio, hora_fim, disciplina FROM horarios WHERE id = ?', (id_horario,))
+        horario = cursor.fetchone()
+        conn.close()
+        
+        if horario is None:
+            raise Exception(f"Horário com ID {id_horario} não encontrado")
+        
+        return horario
+    except Exception as e:
+        raise Exception(f"Erro ao buscar horário: {str(e)}")
