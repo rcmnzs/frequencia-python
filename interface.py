@@ -14,7 +14,7 @@ from tkinter import filedialog
 
 class AplicativoFrequencia:
     def __init__(self):
-        self.janela = ttk.Window(themename="darkly")
+        self.janela = ttk.Window(themename="solar")
         self.janela.title("Processador de Frequência Escolar")
         self.janela.geometry("1100x750")
         
