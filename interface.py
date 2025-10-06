@@ -288,19 +288,27 @@ class AplicativoFrequencia:
     def abrir_janela_adicionar_aluno(self):
         janela_add = ttk.Toplevel(self.janela)
         janela_add.title("Adicionar Aluno")
+        janela_add.geometry("400x350")
+
+        ttk.Label(janela_add, text="Adicionar Novo Aluno", font=('Arial', 14, 'bold')).pack(pady=20)
         
-        ttk.Label(janela_add, text="Matrícula:").pack(pady=5)
-        entry_matricula = ttk.Entry(janela_add)
-        entry_matricula.pack(pady=5)
+        frame_form = ttk.Frame(janela_add)
+        frame_form.pack(fill=X, padx=20)
+
+        ttk.Label(frame_form, text="Matrícula:").pack(anchor=W)
+        entry_matricula = ttk.Entry(frame_form)
+        entry_matricula.pack(fill=X, pady=(0, 10))
         
-        ttk.Label(janela_add, text="Nome:").pack(pady=5)
-        entry_nome = ttk.Entry(janela_add)
-        entry_nome.pack(pady=5)
+        ttk.Label(frame_form, text="Nome:").pack(anchor=W)
+        entry_nome = ttk.Entry(frame_form)
+        entry_nome.pack(fill=X, pady=(0, 10))
         
-        ttk.Label(janela_add, text="Turma:").pack(pady=5)
-        entry_turma = ttk.Entry(janela_add)
-        entry_turma.pack(pady=5)
+        ttk.Label(frame_form, text="Turma:").pack(anchor=W)
+        entry_turma = ttk.Entry(frame_form)
+        entry_turma.pack(fill=X, pady=(0, 10))
         
+        entry_matricula.focus_set()
+
         def salvar_aluno():
             try:
                 dados = {
@@ -315,7 +323,7 @@ class AplicativoFrequencia:
             except Exception as e:
                 Messagebox.show_error(f"Erro: {str(e)}", "Erro")
         
-        ttk.Button(janela_add, text="Salvar", command=salvar_aluno, bootstyle=SUCCESS).pack(pady=10)
+        ttk.Button(janela_add, text="Salvar", command=salvar_aluno, bootstyle=SUCCESS).pack(pady=20)
 
     def abrir_janela_editar_aluno(self):
         selecionado = self.tree_alunos.selection()
@@ -330,22 +338,30 @@ class AplicativoFrequencia:
         
         janela_edit = ttk.Toplevel(self.janela)
         janela_edit.title("Editar Aluno")
+        janela_edit.geometry("400x350")
         
-        ttk.Label(janela_edit, text="Matrícula:").pack(pady=5)
-        entry_matricula = ttk.Entry(janela_edit)
+        ttk.Label(janela_edit, text="Editar Aluno", font=('Arial', 14, 'bold')).pack(pady=20)
+        
+        frame_form = ttk.Frame(janela_edit)
+        frame_form.pack(fill=X, padx=20)
+
+        ttk.Label(frame_form, text="Matrícula:").pack(anchor=W)
+        entry_matricula = ttk.Entry(frame_form)
         entry_matricula.insert(0, matricula_atual)
-        entry_matricula.pack(pady=5)
+        entry_matricula.pack(fill=X, pady=(0, 10))
         
-        ttk.Label(janela_edit, text="Nome:").pack(pady=5)
-        entry_nome = ttk.Entry(janela_edit)
+        ttk.Label(frame_form, text="Nome:").pack(anchor=W)
+        entry_nome = ttk.Entry(frame_form)
         entry_nome.insert(0, nome_atual)
-        entry_nome.pack(pady=5)
+        entry_nome.pack(fill=X, pady=(0, 10))
         
-        ttk.Label(janela_edit, text="Turma:").pack(pady=5)
-        entry_turma = ttk.Entry(janela_edit)
+        ttk.Label(frame_form, text="Turma:").pack(anchor=W)
+        entry_turma = ttk.Entry(frame_form)
         entry_turma.insert(0, turma_atual)
-        entry_turma.pack(pady=5)
+        entry_turma.pack(fill=X, pady=(0, 10))
         
+        entry_matricula.focus_set()
+
         def salvar_edicao():
             try:
                 novos_dados = {
@@ -360,7 +376,7 @@ class AplicativoFrequencia:
             except Exception as e:
                 Messagebox.show_error(f"Erro: {str(e)}", "Erro")
         
-        ttk.Button(janela_edit, text="Salvar", command=salvar_edicao, bootstyle=SUCCESS).pack(pady=10)
+        ttk.Button(janela_edit, text="Salvar", command=salvar_edicao, bootstyle=SUCCESS).pack(pady=20)
 
     def excluir_aluno_selecionado(self):
         selecionado = self.tree_alunos.selection()
@@ -486,9 +502,9 @@ class AplicativoFrequencia:
             
             janela_menu = ttk.Toplevel(self.janela)
             janela_menu.title("Gerenciar Horário")
-            janela_menu.geometry("400x300")
+            janela_menu.geometry("400x380") # <-- ALTURA AUMENTADA
             
-            ttk.Label(janela_menu, text="Informações do Horário", font=('Arial', 12, 'bold')).pack(pady=10)
+            ttk.Label(janela_menu, text="Informações do Horário", font=('Arial', 14, 'bold')).pack(pady=20)
             
             info_frame = ttk.Frame(janela_menu, padding=10)
             info_frame.pack(fill=X, padx=20)
@@ -498,12 +514,15 @@ class AplicativoFrequencia:
             ttk.Label(info_frame, text=f"Horário: {horario[3]} - {horario[4]}", font=('Arial', 10)).pack(anchor=W, pady=2)
             ttk.Label(info_frame, text=f"Disciplina: {horario[5]}", font=('Arial', 10)).pack(anchor=W, pady=2)
             
-            frame_botoes = ttk.Frame(janela_menu, padding=20)
-            frame_botoes.pack(fill=X)
+            frame_botoes = ttk.Frame(janela_menu)
+            frame_botoes.pack(fill=X, padx=20, pady=20)
             
-            ttk.Button(frame_botoes, text="Editar", command=lambda: self.editar_horario(id_horario, janela_menu), bootstyle=INFO, width=15).pack(pady=5)
-            ttk.Button(frame_botoes, text="Remover", command=lambda: self.remover_horario(id_horario, janela_menu), bootstyle=DANGER, width=15).pack(pady=5)
-            ttk.Button(frame_botoes, text="Fechar", command=janela_menu.destroy, bootstyle=SECONDARY, width=15).pack(pady=5)
+            # Centralizando botões
+            frame_botoes.columnconfigure(0, weight=1)
+
+            ttk.Button(frame_botoes, text="Editar", command=lambda: self.editar_horario(id_horario, janela_menu), bootstyle=INFO).pack(fill=X, pady=4)
+            ttk.Button(frame_botoes, text="Remover", command=lambda: self.remover_horario(id_horario, janela_menu), bootstyle=DANGER).pack(fill=X, pady=4)
+            ttk.Button(frame_botoes, text="Fechar", command=janela_menu.destroy, bootstyle=SECONDARY).pack(fill=X, pady=4)
             
         except Exception as e:
             Messagebox.show_error(f"Erro ao carregar horário: {str(e)}", "Erro")
@@ -674,7 +693,7 @@ class AplicativoFrequencia:
         entry_turma.pack(pady=5)
         
         ttk.Label(frame_form, text="Dia da Semana:").pack(pady=5)
-        combo_dia_semana = ttk.Combobox(frame_form, values=["SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA", "QUINTA-FEIRA", "SEXTA-FEira", "SÁBADO", "DOMINGO"], state="readonly", width=28)
+        combo_dia_semana = ttk.Combobox(frame_form, values=["SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA", "QUINTA-FEIRA", "SEXTA-FEIRA", "SÁBADO", "DOMINGO"], state="readonly", width=28)
         combo_dia_semana.pack(pady=5)
         
         ttk.Label(frame_form, text="Hora Início (HH:MM):").pack(pady=5)
@@ -772,7 +791,7 @@ class AplicativoFrequencia:
     def limpar_filtros_faltas(self):
         self.entry_filtro_nome.delete(0, END)
         self.combo_filtro_disciplina.set("Todas")
-        self.combo_filtro_turma_faltas.set("Todas")
+        self.combo_filtro_turma_faltas.set("Todos")
         self.combo_filtro_dia_faltas.set("Todos")
         self.pagina_faltas = 0
         self.carregar_faltas_tabela()
