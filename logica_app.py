@@ -2,7 +2,7 @@
 """
 Módulo de lógica de negócio
 Contém funções para processamento de dados e PDF
-Versão SQLite com otimizações
+Versão SQLite com otimizações + Histórico de Faltas
 """
 
 import sqlite3
@@ -16,6 +16,7 @@ import os
 DB_ALUNOS = 'data/alunos.db'
 DB_HORARIOS = 'data/horarios.db'
 DB_FALTAS = 'data/faltas_consolidadas.db'
+DB_HISTORICO = 'data/historico_faltas.db'  # NOVO!
 
 # ==================== INICIALIZAÇÃO DOS BANCOS ====================
 
@@ -56,7 +57,7 @@ def inicializar_bancos():
     conn.commit()
     conn.close()
     
-    # Banco de Faltas
+    # Banco de Faltas Consolidadas
     conn = sqlite3.connect(DB_FALTAS)
     cursor = conn.cursor()
     cursor.execute('''
@@ -70,6 +71,28 @@ def inicializar_bancos():
     ''')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_matricula ON faltas(matricula_aluno)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_disciplina ON faltas(disciplina)')
+    conn.commit()
+    conn.close()
+    
+    # NOVO: Banco de Histórico de Faltas
+    conn = sqlite3.connect(DB_HISTORICO)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS historico_faltas (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            matricula_aluno TEXT NOT NULL,
+            nome_aluno TEXT NOT NULL,
+            turma TEXT NOT NULL,
+            disciplina TEXT NOT NULL,
+            data TEXT NOT NULL,
+            dia_semana TEXT NOT NULL,
+            UNIQUE(matricula_aluno, disciplina, data)
+        )
+    ''')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_hist_matricula ON historico_faltas(matricula_aluno)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_hist_data ON historico_faltas(data)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_hist_turma ON historico_faltas(turma)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_hist_disciplina ON historico_faltas(disciplina)')
     conn.commit()
     conn.close()
 
@@ -347,7 +370,6 @@ def obter_dias_semana_distintos():
         dias_raw = [row[0] for row in cursor.fetchall()]
         conn.close()
 
-        # Lista padrão de dias (garante ordem e nomes corretos)
         dias_padrao = [
             "SEGUNDA-FEIRA",
             "TERÇA-FEIRA",
@@ -358,7 +380,6 @@ def obter_dias_semana_distintos():
             "DOMINGO"
         ]
 
-        # Retorna apenas os que existem, mas ordenados corretamente
         return [d for d in dias_padrao if d in dias_raw] or dias_padrao
     except:
         return ["SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA", "QUINTA-FEIRA", "SEXTA-FEIRA", "SÁBADO", "DOMINGO"]
@@ -456,7 +477,7 @@ def converter_dia_semana(data):
 
 
 def processar_faltas_do_dia(data_str, lista_presentes, lista_ausentes):
-    """Processa as faltas de um dia específico"""
+    """Processa as faltas de um dia específico - ATUALIZADO para salvar no histórico"""
     try:
         # Converter data
         try:
@@ -464,6 +485,7 @@ def processar_faltas_do_dia(data_str, lista_presentes, lista_ausentes):
         except:
             data = datetime.strptime(data_str, '%Y-%m-%d')
         
+        data_formatada = data.strftime('%Y-%m-%d')  # Para o banco
         dia_semana = converter_dia_semana(data)
         
         # Carregar dados
@@ -471,7 +493,7 @@ def processar_faltas_do_dia(data_str, lista_presentes, lista_ausentes):
         df_alunos = pd.read_sql_query('SELECT matricula, nome, turma FROM alunos', conn_alunos)
         conn_alunos.close()
         
-        # Normalizar matrículas dos PDFs (remover zeros à esquerda)
+        # Normalizar matrículas dos PDFs
         lista_presentes_norm = [str(m).lstrip('0') for m in lista_presentes if m]
         lista_ausentes_norm = [str(m).lstrip('0') for m in lista_ausentes if m]
         
@@ -482,10 +504,6 @@ def processar_faltas_do_dia(data_str, lista_presentes, lista_ausentes):
             mat_norm = mat_original.lstrip('0')
             mapa_matriculas[mat_norm] = mat_original
         
-        print(f"DEBUG: Total de alunos no banco: {len(df_alunos)}")
-        print(f"DEBUG: Presentes no PDF: {len(lista_presentes_norm)}")
-        print(f"DEBUG: Ausentes no PDF: {len(lista_ausentes_norm)}")
-        
         conn_horarios = sqlite3.connect(DB_HORARIOS)
         df_horarios = pd.read_sql_query(
             'SELECT turma, disciplina FROM horarios WHERE dia_semana = ?',
@@ -493,25 +511,25 @@ def processar_faltas_do_dia(data_str, lista_presentes, lista_ausentes):
         )
         conn_horarios.close()
         
-        # Determinar ausentes finais (usando matrículas normalizadas)
+        # Determinar ausentes finais
         ausentes_finais_norm = set(lista_ausentes_norm)
         
-        # Adicionar alunos que não estão na lista de presentes
         for mat_norm in mapa_matriculas.keys():
             if mat_norm not in lista_presentes_norm:
                 ausentes_finais_norm.add(mat_norm)
         
-        print(f"DEBUG: Total de ausentes detectados: {len(ausentes_finais_norm)}")
-        
         faltas_dia = []
+        
+        # Conectar aos bancos de faltas
         conn_faltas = sqlite3.connect(DB_FALTAS)
         cursor_faltas = conn_faltas.cursor()
         
+        conn_historico = sqlite3.connect(DB_HISTORICO)
+        cursor_historico = conn_historico.cursor()
+        
         # Processar cada ausente
         for matricula_norm in ausentes_finais_norm:
-            # Buscar matrícula original no mapa
             if matricula_norm not in mapa_matriculas:
-                print(f"DEBUG: Matrícula normalizada {matricula_norm} não encontrada no banco")
                 continue
             
             matricula_original = mapa_matriculas[matricula_norm]
@@ -527,7 +545,6 @@ def processar_faltas_do_dia(data_str, lista_presentes, lista_ausentes):
             disciplinas_dia = df_horarios[df_horarios['turma'] == turma]
             
             if len(disciplinas_dia) == 0:
-                print(f"DEBUG: Nenhuma disciplina para turma {turma} no {dia_semana}")
                 continue
             
             # Registrar falta em cada disciplina
@@ -543,7 +560,7 @@ def processar_faltas_do_dia(data_str, lista_presentes, lista_ausentes):
                     'dia_semana': dia_semana
                 })
                 
-                # Atualizar banco de faltas
+                # 1. Atualizar banco CONSOLIDADO (como antes)
                 cursor_faltas.execute('''
                     INSERT INTO faltas (matricula_aluno, disciplina, total_faltas)
                     VALUES (?, ?, 1)
@@ -551,12 +568,22 @@ def processar_faltas_do_dia(data_str, lista_presentes, lista_ausentes):
                     DO UPDATE SET total_faltas = total_faltas + 1
                 ''', (matricula_original, disciplina))
                 
-                print(f"DEBUG: Falta registrada - {nome} ({matricula_original}) em {disciplina}")
+                # 2. NOVO: Salvar no HISTÓRICO
+                try:
+                    cursor_historico.execute('''
+                        INSERT INTO historico_faltas 
+                        (matricula_aluno, nome_aluno, turma, disciplina, data, dia_semana)
+                        VALUES (?, ?, ?, ?, ?, ?)
+                    ''', (matricula_original, nome, turma, disciplina, data_formatada, dia_semana))
+                except sqlite3.IntegrityError:
+                    # Falta já registrada neste dia/disciplina (evita duplicatas)
+                    pass
         
         conn_faltas.commit()
         conn_faltas.close()
         
-        print(f"DEBUG: Total de faltas registradas: {len(faltas_dia)}")
+        conn_historico.commit()
+        conn_historico.close()
         
         return faltas_dia
         
@@ -570,7 +597,6 @@ def obter_quadro_geral_faltas(limite=None, offset=0, filtro_nome=None, filtro_di
         conn_faltas = sqlite3.connect(DB_FALTAS)
         cursor = conn_faltas.cursor()
         
-        # Anexar bancos
         cursor.execute(f"ATTACH DATABASE '{DB_ALUNOS}' AS db_alunos")
         cursor.execute(f"ATTACH DATABASE '{DB_HORARIOS}' AS db_horarios")
         
@@ -585,7 +611,6 @@ def obter_quadro_geral_faltas(limite=None, offset=0, filtro_nome=None, filtro_di
             LEFT JOIN db_alunos.alunos AS a ON f.matricula_aluno = a.matricula
         '''
         
-        # Adicionar filtros
         conditions = []
         params = []
         
@@ -602,7 +627,6 @@ def obter_quadro_geral_faltas(limite=None, offset=0, filtro_nome=None, filtro_di
             params.append(filtro_turma)
         
         if filtro_dia_semana and filtro_dia_semana != "Todos":
-            # Filtra apenas faltas de disciplinas que ocorrem nesse dia
             conditions.append('''
                 EXISTS (
                     SELECT 1 FROM db_horarios.horarios AS h 
@@ -773,10 +797,263 @@ def obter_disciplinas_distintas():
 def limpar_todas_faltas():
     """Remove todos os registros de faltas do banco (zerar para novo período)"""
     try:
+        # Limpar banco consolidado
         conn = sqlite3.connect(DB_FALTAS)
         cursor = conn.cursor()
         cursor.execute('DELETE FROM faltas')
         conn.commit()
         conn.close()
+        
+        # Limpar histórico
+        conn = sqlite3.connect(DB_HISTORICO)
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM historico_faltas')
+        conn.commit()
+        conn.close()
     except Exception as e:
         raise Exception(f"Erro ao limpar faltas: {str(e)}")
+        
+def obter_horarios_por_turma_grade(turma):
+    """Retorna horários organizados em formato de grade para visualização"""
+    try:
+        conn = sqlite3.connect(DB_HORARIOS)
+        df = pd.read_sql_query(
+            'SELECT id, turma, dia_semana, hora_inicio, hora_fim, disciplina FROM horarios WHERE turma = ? ORDER BY dia_semana, hora_inicio',
+            conn, params=[turma]
+        )
+        conn.close()
+        return df
+    except Exception as e:
+        raise Exception(f"Erro ao carregar horários: {str(e)}")
+
+def obter_horarios_todas_turmas_grade():
+    """Retorna todos os horários organizados para grade"""
+    try:
+        conn = sqlite3.connect(DB_HORARIOS)
+        df = pd.read_sql_query(
+            'SELECT id, turma, dia_semana, hora_inicio, hora_fim, disciplina FROM horarios ORDER BY turma, dia_semana, hora_inicio',
+            conn
+        )
+        conn.close()
+        return df
+    except Exception as e:
+        raise Exception(f"Erro ao carregar horários: {str(e)}")
+
+def obter_horario_por_id(id_horario):
+    """Retorna um horário específico pelo ID"""
+    try:
+        id_horario = int(str(id_horario).strip())
+        conn = sqlite3.connect(DB_HORARIOS)
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, turma, dia_semana, hora_inicio, hora_fim, disciplina FROM horarios WHERE id = ?', (id_horario,))
+        horario = cursor.fetchone()
+        conn.close()
+        
+        if horario is None:
+            raise Exception(f"Horário com ID {id_horario} não encontrado")
+        
+        return horario
+    except Exception as e:
+        raise Exception(f"Erro ao buscar horário: {str(e)}")
+
+
+# ==================== NOVAS FUNÇÕES: EXPORTAÇÃO EXCEL ====================
+
+def exportar_faltas_para_excel(mes, ano, caminho_arquivo):
+    """
+    Exporta faltas do mês/ano especificado para Excel no formato da planilha
+    
+    Args:
+        mes: Número do mês (1-12)
+        ano: Ano (ex: 2025)
+        caminho_arquivo: Caminho completo onde salvar o arquivo .xlsx
+    """
+    try:
+        import calendar
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+        
+        # Obter dados do histórico do mês
+        data_inicio = f"{ano}-{mes:02d}-01"
+        dias_no_mes = calendar.monthrange(ano, mes)[1]
+        data_fim = f"{ano}-{mes:02d}-{dias_no_mes}"
+        
+        conn = sqlite3.connect(DB_HISTORICO)
+        
+        # Buscar todas as faltas do mês
+        query = '''
+            SELECT matricula_aluno, nome_aluno, turma, disciplina, data
+            FROM historico_faltas
+            WHERE data BETWEEN ? AND ?
+            ORDER BY turma, nome_aluno, data
+        '''
+        
+        df_historico = pd.read_sql_query(query, conn, params=[data_inicio, data_fim])
+        conn.close()
+        
+        if df_historico.empty:
+            raise Exception(f"Nenhuma falta registrada para {mes:02d}/{ano}")
+        
+        # Buscar todas as disciplinas do sistema
+        disciplinas_sistema = obter_disciplinas_distintas()
+        
+        # Criar workbook
+        wb = Workbook()
+        ws = wb.active
+        
+        # Nome do mês
+        meses = ['', 'JANEIRO', 'FEVEREIRO', 'MARÇO', 'ABRIL', 'MAIO', 'JUNHO',
+                 'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO']
+        ws.title = f"{meses[mes]} {ano}"
+        
+        # Estilos
+        header_fill = PatternFill(start_color="00B050", end_color="00B050", fill_type="solid")
+        total_fill = PatternFill(start_color="FF0000", end_color="FF0000", fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", size=11)
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        center_align = Alignment(horizontal='center', vertical='center')
+        
+        # LINHA 1: Título do mês
+        ws.merge_cells('A1:C1')
+        cell_titulo = ws['A1']
+        cell_titulo.value = meses[mes]
+        cell_titulo.fill = header_fill
+        cell_titulo.font = Font(bold=True, color="FFFFFF", size=14)
+        cell_titulo.alignment = center_align
+        
+        # Cabeçalhos das colunas de dias
+        col_offset = 4  # Começa na coluna D (depois de TURMA, NOME, vazio)
+        for dia in range(1, dias_no_mes + 1):
+            cell = ws.cell(row=1, column=col_offset + dia - 1)
+            cell.value = dia
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+            cell.border = border
+            ws.column_dimensions[cell.column_letter].width = 3
+        
+        # Cabeçalhos das disciplinas
+        col_disciplinas = col_offset + dias_no_mes
+        for idx, disciplina in enumerate(disciplinas_sistema):
+            # Abreviar nome da disciplina (pegar primeiras 4 letras em maiúsculo)
+            abrev = disciplina[:4].upper() if len(disciplina) >= 4 else disciplina.upper()
+            cell = ws.cell(row=1, column=col_disciplinas + idx)
+            cell.value = abrev
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = center_align
+            cell.border = border
+            ws.column_dimensions[cell.column_letter].width = 5
+        
+        # TOTAL
+        cell_total = ws.cell(row=1, column=col_disciplinas + len(disciplinas_sistema))
+        cell_total.value = "TOTAL"
+        cell_total.fill = total_fill
+        cell_total.font = Font(bold=True, color="FFFFFF", size=11)
+        cell_total.alignment = center_align
+        cell_total.border = border
+        ws.column_dimensions[cell_total.column_letter].width = 6
+        
+        # LINHA 2: Cabeçalhos fixos
+        ws['A2'] = "TURMA"
+        ws['A2'].fill = header_fill
+        ws['A2'].font = header_font
+        ws['A2'].alignment = center_align
+        ws['A2'].border = border
+        ws.column_dimensions['A'].width = 8
+        
+        ws['B2'] = "NOME"
+        ws['B2'].fill = header_fill
+        ws['B2'].font = header_font
+        ws['B2'].alignment = center_align
+        ws['B2'].border = border
+        ws.column_dimensions['B'].width = 30
+        
+        # Agrupar dados por aluno
+        alunos_unicos = df_historico[['matricula_aluno', 'nome_aluno', 'turma']].drop_duplicates()
+        alunos_unicos = alunos_unicos.sort_values(['turma', 'nome_aluno'])
+        
+        linha_atual = 3
+        
+        for _, aluno in alunos_unicos.iterrows():
+            matricula = aluno['matricula_aluno']
+            nome = aluno['nome_aluno']
+            turma = aluno['turma']
+            
+            # TURMA e NOME
+            ws.cell(row=linha_atual, column=1).value = turma
+            ws.cell(row=linha_atual, column=1).border = border
+            ws.cell(row=linha_atual, column=1).alignment = center_align
+            
+            ws.cell(row=linha_atual, column=2).value = nome
+            ws.cell(row=linha_atual, column=2).border = border
+            
+            # Faltas do aluno
+            faltas_aluno = df_historico[df_historico['matricula_aluno'] == matricula]
+            
+            # Preencher faltas por dia
+            for dia in range(1, dias_no_mes + 1):
+                data_dia = f"{ano}-{mes:02d}-{dia:02d}"
+                faltas_dia = faltas_aluno[faltas_aluno['data'] == data_dia]
+                
+                cell = ws.cell(row=linha_atual, column=col_offset + dia - 1)
+                cell.value = len(faltas_dia) if not faltas_dia.empty else 0
+                cell.alignment = center_align
+                cell.border = border
+            
+            # Preencher totais por disciplina
+            for idx, disciplina in enumerate(disciplinas_sistema):
+                faltas_disc = faltas_aluno[faltas_aluno['disciplina'] == disciplina]
+                cell = ws.cell(row=linha_atual, column=col_disciplinas + idx)
+                cell.value = len(faltas_disc)
+                cell.alignment = center_align
+                cell.border = border
+            
+            # TOTAL GERAL
+            total_faltas = len(faltas_aluno)
+            cell_total = ws.cell(row=linha_atual, column=col_disciplinas + len(disciplinas_sistema))
+            cell_total.value = total_faltas
+            cell_total.alignment = center_align
+            cell_total.border = border
+            cell_total.fill = PatternFill(start_color="FFE6E6", end_color="FFE6E6", fill_type="solid")
+            
+            linha_atual += 1
+        
+        # Salvar arquivo
+        wb.save(caminho_arquivo)
+        
+        return True
+        
+    except Exception as e:
+        raise Exception(f"Erro ao exportar para Excel: {str(e)}")
+
+
+def obter_meses_com_faltas():
+    """Retorna lista de meses/anos que possuem faltas registradas"""
+    try:
+        conn = sqlite3.connect(DB_HISTORICO)
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+            SELECT DISTINCT strftime('%Y-%m', data) as mes_ano
+            FROM historico_faltas
+            ORDER BY mes_ano DESC
+        ''')
+        
+        resultados = cursor.fetchall()
+        conn.close()
+        
+        meses = []
+        for row in resultados:
+            ano, mes = row[0].split('-')
+            meses.append({'ano': int(ano), 'mes': int(mes), 'label': f"{mes}/{ano}"})
+        
+        return meses
+        
+    except Exception as e:
+        return []
