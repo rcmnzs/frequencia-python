@@ -1,4 +1,26 @@
+<<<<<<< HEAD
 ttkbootstrap
 pandas
 PyMuPDF
 openpyxl
+=======
+# Requisitos do Processador de Frequência Escolar
+# Instalação: pip install -r requirements.txt
+
+# Interface gráfica moderna com bootstrap
+ttkbootstrap>=1.10.1
+
+# Manipulação de dados
+pandas>=2.0.0
+
+# Leitura e processamento de arquivos PDF
+PyMuPDF>=1.23.0
+
+# Suporte a arquivos Excel (usado pelo pandas)
+openpyxl>=3.1.0
+
+# Nota: Os seguintes módulos já vêm com Python e não precisam ser instalados:
+# - sqlite3 (banco de dados)
+# - tkinter (interface gráfica base)
+# - datetime, os, re (utilitários padrão)
+>>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
