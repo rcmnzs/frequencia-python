@@ -9,10 +9,6 @@ import logica_app as logica
 import os
 from datetime import datetime
 from ttkbootstrap.dialogs import Querybox
-<<<<<<< HEAD
-=======
-from tkinter import filedialog
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
 
 
 class AplicativoFrequencia:
@@ -38,17 +34,9 @@ class AplicativoFrequencia:
                 self.pagina_alunos = 0
                 self.carregar_alunos_tabela()
             
-<<<<<<< HEAD
             if hasattr(self, 'combo_turma_grade'):
                 self.carregar_grade_horarios()
 
-=======
-            # Atualizar aba de Horários
-            if hasattr(self, 'combo_turma_grade'):
-                self.carregar_grade_horarios()
-
-            # Atualizar aba de Faltas
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
             if hasattr(self, 'combo_filtro_disciplina'):
                 self.combo_filtro_disciplina.configure(values=["Todas"] + logica.obter_disciplinas_distintas())
                 self.combo_filtro_turma_faltas.configure(values=["Todas"] + logica.obter_turmas_distintas())
@@ -155,19 +143,11 @@ class AplicativoFrequencia:
         try:
             from ttkbootstrap.dialogs.dialogs import DatePickerDialog
             dialog = DatePickerDialog(title="Selecionar Data", firstweekday=6)
-<<<<<<< HEAD
-=======
-            
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
             if dialog.date_selected:
                 data_selecionada = dialog.date_selected.strftime("%d/%m/%Y")
                 self.entry_data.delete(0, END)
                 self.entry_data.insert(0, data_selecionada)
-<<<<<<< HEAD
         except:
-=======
-        except Exception as e:
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
             Messagebox.show_info("Use o formato DD/MM/AAAA para inserir a data manualmente.", "Calendário")
             
     def processar_frequencia(self):
@@ -542,23 +522,12 @@ class AplicativoFrequencia:
             ttk.Label(frame_form, text="Turma:").pack(pady=5)
             entry_turma = ttk.Entry(frame_form, width=30)
             entry_turma.insert(0, horario[1])
-<<<<<<< HEAD
-=======
-            entry_turma.configure(state='normal')
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
             entry_turma.pack(pady=5)
 
             ttk.Label(frame_form, text="Dia da Semana:").pack(pady=5)
             combo_dia_semana = ttk.Combobox(
                 frame_form,
-<<<<<<< HEAD
                 values=["SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA", "QUINTA-FEIRA", "SEXTA-FEIRA", "SÁBADO", "DOMINGO"],
-=======
-                values=[
-                    "SEGUNDA-FEIRA", "TERÇA-FEIRA", "QUARTA-FEIRA",
-                    "QUINTA-FEIRA", "SEXTA-FEIRA", "SÁBADO", "DOMINGO"
-                ],
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
                 state="normal",
                 width=28
             )
@@ -568,34 +537,19 @@ class AplicativoFrequencia:
             ttk.Label(frame_form, text="Hora Início (HH:MM):").pack(pady=5)
             entry_hora_inicio = ttk.Entry(frame_form, width=30)
             entry_hora_inicio.insert(0, horario[3])
-<<<<<<< HEAD
-=======
-            entry_hora_inicio.configure(state='normal')
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
             entry_hora_inicio.pack(pady=5)
 
             ttk.Label(frame_form, text="Hora Fim (HH:MM):").pack(pady=5)
             entry_hora_fim = ttk.Entry(frame_form, width=30)
             entry_hora_fim.insert(0, horario[4])
-<<<<<<< HEAD
-=======
-            entry_hora_fim.configure(state='normal')
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
             entry_hora_fim.pack(pady=5)
 
             ttk.Label(frame_form, text="Disciplina:").pack(pady=5)
             entry_disciplina = ttk.Entry(frame_form, width=30)
             entry_disciplina.insert(0, horario[5])
-<<<<<<< HEAD
             entry_disciplina.pack(pady=5)
             
             entry_turma.focus_set()
-=======
-            entry_disciplina.configure(state='normal')
-            entry_disciplina.pack(pady=5)
-            
-            entry_turma.focus_set()    
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
                 
             def salvar_edicao():
                 try:
@@ -737,10 +691,6 @@ class AplicativoFrequencia:
         
         ttk.Button(frame_form, text="Salvar", command=salvar_horario, bootstyle=SUCCESS).pack(pady=15)
     
-<<<<<<< HEAD
-=======
-    # ========== ABA 4: FALTAS ==========
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
     def criar_aba_faltas(self):
         aba = ttk.Frame(self.notebook)
         self.notebook.add(aba, text="Quadro Geral de Faltas")
@@ -784,11 +734,7 @@ class AplicativoFrequencia:
         for col in colunas:
             self.tree_faltas.heading(col, text=col, anchor=W)
             if col == 'Total de Faltas':
-<<<<<<< HEAD
                 self.tree_faltas.column(col, width=130, anchor=CENTER)
-=======
-                self.tree_faltas.column(col, width=130, anchor=CENTER) # Manter números centralizados
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
             else:
                 self.tree_faltas.column(col, width=130, anchor=W)
         self.tree_faltas.pack(fill=BOTH, expand=YES, padx=10, pady=10)

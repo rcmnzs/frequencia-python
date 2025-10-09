@@ -854,7 +854,6 @@ def obter_horario_por_id(id_horario):
         
         return horario
     except Exception as e:
-<<<<<<< HEAD
         raise Exception(f"Erro ao buscar horário: {str(e)}")
 
 
@@ -1058,6 +1057,3 @@ def obter_meses_com_faltas():
         
     except Exception as e:
         return []
-=======
-        raise Exception(f"Erro ao buscar horário: {str(e)}")
->>>>>>> dff7806e9187c3a3a5bf23e75924bc777d34899c
